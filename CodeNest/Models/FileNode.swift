@@ -4,6 +4,7 @@
 //
 
 import Foundation
+internal import Combine
 import Observation
 
 @Observable

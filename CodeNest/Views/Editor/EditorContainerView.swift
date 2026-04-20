@@ -10,7 +10,7 @@ struct EditorContainerView: View {
 
     var body: some View {
         if let tab = workspace.activeTab {
-            CodeTextView(text: contentBinding(for: tab))
+            CodeTextView(text: contentBinding(for: tab), language: tab.fileNode.fileExtension)
                 .id(tab.id) // force NSTextView recreation on tab switch
         } else {
             VStack(spacing: 12) {
