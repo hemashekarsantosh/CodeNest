@@ -18,6 +18,8 @@ struct ContentView: View {
                 if !workspace.openTabs.isEmpty {
                     TabBarView()
                     Divider()
+                    BreadcrumbView()
+                    Divider()
                 }
                 EditorContainerView()
             }
