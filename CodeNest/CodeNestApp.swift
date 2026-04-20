@@ -18,10 +18,20 @@ struct CodeNestApp: App {
         }
         .commands {
             CommandGroup(replacing: .newItem) {
+                Button("Open File...") {
+                    workspace.openFileFromPanel()
+                }
+                .keyboardShortcut("o", modifiers: .command)
                 Button("Open Folder...") {
                     workspace.openFolder()
                 }
                 .keyboardShortcut("o", modifiers: [.command, .shift])
+            }
+            CommandGroup(after: .newItem) {
+                Button("Run") {
+                    workspace.runActiveTab()
+                }
+                .keyboardShortcut("r", modifiers: .command)
             }
         }
     }

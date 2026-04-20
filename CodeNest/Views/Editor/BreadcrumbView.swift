@@ -22,17 +22,38 @@ struct BreadcrumbView: View {
 
     var body: some View {
         if !segments.isEmpty {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 4) {
-                    ForEach(Array(segments.enumerated()), id: \.offset) { index, segment in
-                        if index > 0 {
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 10))
-                                .foregroundStyle(.secondary)
+            HStack(spacing: 0) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 4) {
+                        ForEach(Array(segments.enumerated()), id: \.offset) { index, segment in
+                            if index > 0 {
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(.secondary)
+                            }
+                            Text(segment)
+                                .font(.system(size: 11))
+                                .foregroundStyle(index == segments.count - 1 ? .primary : .secondary)
                         }
-                        Text(segment)
-                            .font(.system(size: 11))
-                            .foregroundStyle(index == segments.count - 1 ? .primary : .secondary)
+                    }
+                    .padding(.leading, 12)
+                    .padding(.vertical, 5)
+                }
+
+                Spacer(minLength: 8)
+
+                Group {
+                    if workspace.isRunning {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Button(action: { workspace.runActiveTab() }) {
+                            Image(systemName: "play.fill")
+                                .font(.system(size: 10))
+                                .foregroundStyle(.green)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(workspace.activeTab == nil)
                     }
                 }
                 .padding(.horizontal, 12)

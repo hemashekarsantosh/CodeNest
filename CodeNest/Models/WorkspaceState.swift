@@ -133,6 +133,69 @@ final class WorkspaceState {
         activeTabID = tab.id
     }
 
+    // MARK: - Open File
+    func openFileFromPanel() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Open File"
+
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        _ = url.startAccessingSecurityScopedResource()
+        let node = FileNode(url: url)
+        openFile(node)
+    }
+
+    // MARK: - Run Code
+    var runOutput: String = ""
+    var isRunning: Bool = false
+
+    func runActiveTab() {
+        guard let tab = activeTab else { return }
+        let ext = tab.fileNode.fileExtension
+        guard ext == "swift" else {
+            runOutput = "Cannot run .\(ext) files.\n"
+            return
+        }
+        isRunning = true
+        runOutput = ""
+        let content = tab.content
+        Task.detached {
+            let output = await Self.execute(content: content, fileExtension: ext)
+            await MainActor.run {
+                self.runOutput = output
+                self.isRunning = false
+            }
+        }
+    }
+
+    private static func execute(content: String, fileExtension ext: String) async -> String {
+        let tmp = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString + "." + ext)
+        do {
+            try content.write(to: tmp, atomically: true, encoding: .utf8)
+        } catch {
+            return "Error writing temp file: \(error.localizedDescription)\n"
+        }
+        defer { try? FileManager.default.removeItem(at: tmp) }
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/swift")
+        process.arguments = [tmp.path]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = pipe
+        do {
+            try process.run()
+            process.waitUntilExit()
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            return String(data: data, encoding: .utf8) ?? ""
+        } catch {
+            return "Error running process: \(error.localizedDescription)\n"
+        }
+    }
+
     // MARK: - Workspace Restoration
     func restoreWorkspaceIfNeeded() {
         guard let bookmark = SecurityScopedAccess.load() else { return }

@@ -22,6 +22,10 @@ struct ContentView: View {
                     Divider()
                 }
                 EditorContainerView()
+                if !workspace.runOutput.isEmpty || workspace.isRunning {
+                    Divider()
+                    OutputPanelView()
+                }
             }
         }
         .onAppear {
