@@ -147,6 +147,10 @@ final class WorkspaceState {
         openFile(node)
     }
 
+    // MARK: - Bottom Panel
+    var selectedBottomTab: BottomTab = .output
+    var terminalSession: ShellSession?
+
     // MARK: - Run Code
     var runOutput: String = ""
     var isRunning: Bool = false
@@ -155,34 +159,40 @@ final class WorkspaceState {
         guard let tab = activeTab else { return }
         let ext = tab.fileNode.fileExtension
         guard ext == "swift" else {
-            runOutput = "Cannot run .\(ext) files.\n"
+            if selectedBottomTab == .terminal {
+                terminalSession?.send("echo 'Cannot run .\(ext) files.'\n")
+            } else {
+                runOutput = "Cannot run .\(ext) files.\n"
+            }
             return
         }
-        isRunning = true
-        runOutput = ""
+
         let content = tab.content
-        Task.detached {
-            let output = await Self.execute(content: content, fileExtension: ext)
-            await MainActor.run {
-                self.runOutput = output
-                self.isRunning = false
+        let tmp = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString + "." + ext)
+
+        guard (try? content.write(to: tmp, atomically: true, encoding: .utf8)) != nil else { return }
+
+        if selectedBottomTab == .terminal {
+            terminalSession?.send("swift \(tmp.path) && rm -f \(tmp.path)\n")
+        } else {
+            isRunning = true
+            runOutput = ""
+            Task.detached {
+                let output = await Self.captureOutput(tmpURL: tmp)
+                await MainActor.run {
+                    self.runOutput = output
+                    self.isRunning = false
+                }
             }
         }
     }
 
-    private static func execute(content: String, fileExtension ext: String) async -> String {
-        let tmp = FileManager.default.temporaryDirectory
-            .appendingPathComponent(UUID().uuidString + "." + ext)
-        do {
-            try content.write(to: tmp, atomically: true, encoding: .utf8)
-        } catch {
-            return "Error writing temp file: \(error.localizedDescription)\n"
-        }
-        defer { try? FileManager.default.removeItem(at: tmp) }
-
+    private static func captureOutput(tmpURL: URL) async -> String {
+        defer { try? FileManager.default.removeItem(at: tmpURL) }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/swift")
-        process.arguments = [tmp.path]
+        process.arguments = [tmpURL.path]
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = pipe

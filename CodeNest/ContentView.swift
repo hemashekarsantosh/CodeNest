@@ -22,9 +22,10 @@ struct ContentView: View {
                     Divider()
                 }
                 EditorContainerView()
-                if !workspace.runOutput.isEmpty || workspace.isRunning {
+                if !workspace.openTabs.isEmpty {
                     Divider()
-                    OutputPanelView()
+                    BottomPanelView()
+                        .frame(height: 200)
                 }
             }
         }
