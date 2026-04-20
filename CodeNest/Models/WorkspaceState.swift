@@ -58,6 +58,46 @@ final class WorkspaceState {
         }
     }
 
+    // MARK: - File / Folder Mutations
+
+    func createFile(named name: String, in parent: FileNode) {
+        let url = parent.url.appendingPathComponent(name)
+        guard FileManager.default.createFile(atPath: url.path, contents: nil) else { return }
+        let node = FileNode(url: url)
+        insertSorted(node, into: parent)
+        openFile(node)
+    }
+
+    func createFolder(named name: String, in parent: FileNode) {
+        let url = parent.url.appendingPathComponent(name)
+        guard (try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: false)) != nil else { return }
+        let node = FileNode(url: url)
+        node.children = []
+        insertSorted(node, into: parent)
+    }
+
+    func delete(node: FileNode, from parent: FileNode) {
+        guard (try? FileManager.default.trashItem(at: node.url, resultingItemURL: nil)) != nil else { return }
+        parent.children?.removeAll { $0.url == node.url }
+        if node.isDirectory {
+            openTabs.removeAll { $0.fileNode.url.path.hasPrefix(node.url.path + "/") }
+        } else {
+            openTabs.removeAll { $0.fileNode.url == node.url }
+        }
+        if !openTabs.contains(where: { $0.id == activeTabID }) {
+            activeTabID = openTabs.last?.id
+        }
+    }
+
+    private func insertSorted(_ node: FileNode, into parent: FileNode) {
+        guard parent.children != nil else { return }
+        parent.children!.append(node)
+        parent.children!.sort { lhs, rhs in
+            if lhs.isDirectory != rhs.isDirectory { return lhs.isDirectory }
+            return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+        }
+    }
+
     // MARK: - Open File in Tab
     func openFile(_ node: FileNode) {
         guard !node.isDirectory else { return }

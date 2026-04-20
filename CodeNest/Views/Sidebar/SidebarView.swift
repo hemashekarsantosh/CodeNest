@@ -14,7 +14,7 @@ struct SidebarView: View {
                 List {
                     if let children = root.children {
                         ForEach(children) { node in
-                            FileTreeRowView(node: node)
+                            FileTreeRowView(node: node, parent: root)
                         }
                     } else {
                         ProgressView("Loading...")
