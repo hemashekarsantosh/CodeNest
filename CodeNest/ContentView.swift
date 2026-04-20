@@ -8,17 +8,22 @@
 import SwiftUI
 
 struct ContentView: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
-    }
-}
+    @Environment(WorkspaceState.self) var workspace
 
-#Preview {
-    ContentView()
+    var body: some View {
+        NavigationSplitView {
+            SidebarView()
+        } detail: {
+            VStack(spacing: 0) {
+                if !workspace.openTabs.isEmpty {
+                    TabBarView()
+                    Divider()
+                }
+                EditorContainerView()
+            }
+        }
+        .onAppear {
+            workspace.restoreWorkspaceIfNeeded()
+        }
+    }
 }
