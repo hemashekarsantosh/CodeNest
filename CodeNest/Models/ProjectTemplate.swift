@@ -31,11 +31,10 @@ struct ProjectOptions {
     var name: String         = ""
     var framework: Framework = .springBoot
     // Spring Boot
-    var groupId: String           = "com.example"
-    var buildTool: BuildTool      = .maven
-    var springBootVersion: String = "3.4.4"  // updated when metadata loads
-    var javaVersion: String       = "21"     // updated when metadata loads
-    var selectedDependencies: [String] = []  // dependency IDs from Spring Initializr
+    var groupId: String      = "com.example"
+    var buildTool: BuildTool = .maven
+    var springBootVersion: String = "3.4.4"   // updated when metadata loads
+    var javaVersion: String       = "21"       // updated when metadata loads
     // React
     var useTypeScript: Bool  = true
 }
