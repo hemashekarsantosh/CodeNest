@@ -25,10 +25,14 @@ protocol SyntaxGrammar {
 enum Language {
     static func grammar(for fileExtension: String) -> SyntaxGrammar {
         switch fileExtension.lowercased() {
-        case "swift":          return SwiftGrammar()
-        case "json":           return JSONGrammar()
-        case "md", "markdown": return MarkdownGrammar()
-        default:               return GenericGrammar()
+        case "swift":                return SwiftGrammar()
+        case "json":                 return JSONGrammar()
+        case "md", "markdown":       return MarkdownGrammar()
+        case "java":                 return JavaGrammar()
+        case "js", "jsx", "mjs":     return JavaScriptGrammar()
+        case "ts", "tsx":            return TypeScriptGrammar()
+        case "sh", "bash", "zsh":    return ShellGrammar()
+        default:                     return GenericGrammar()
         }
     }
 }

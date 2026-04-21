@@ -84,9 +84,9 @@ struct FileTreeRowView: View {
                 : nil
         )
         .sheet(item: $creationMode) { mode in
-            CreationSheet(mode: mode, name: $newItemName) {
+            CreationSheet(mode: mode, name: $newItemName) { content in
                 if mode == .file {
-                    workspace.createFile(named: newItemName, in: node)
+                    workspace.createFile(named: newItemName, in: node, content: content)
                 } else {
                     workspace.createFolder(named: newItemName, in: node)
                 }
@@ -126,22 +126,86 @@ struct FileTreeRowView: View {
     }
 }
 
-private struct CreationSheet: View {
+struct CreationSheet: View {
     let mode: CreationMode
     @Binding var name: String
-    let onCreate: () -> Void
+    let onCreate: (String?) -> Void
     @Environment(\.dismiss) private var dismiss
 
+    @State private var selectedTemplate: FileTemplate? = nil
+    @State private var includeMain: Bool = false
+
+    private var currentExtension: String {
+        name.contains(".") ? String(name.split(separator: ".").last ?? "") : ""
+    }
+
+    private var templates: [FileTemplate]? {
+        guard mode == .file else { return nil }
+        return FileTemplate.templates(for: currentExtension)
+    }
+
     var body: some View {
-        VStack(spacing: 16) {
-            Text(mode.title).font(.headline)
-            TextField(mode.placeholder, text: $name)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 260)
+        VStack(alignment: .leading, spacing: 16) {
+            Text(mode.title)
+                .font(.headline)
+                .frame(maxWidth: .infinity, alignment: .center)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Name")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                TextField(mode.placeholder, text: $name)
+                    .textFieldStyle(.roundedBorder)
+                    .onChange(of: currentExtension) { _, _ in
+                        // Reset template selection when extension changes
+                        selectedTemplate = templates?.first
+                    }
+            }
+
+            if let templates {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("File Type")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                    Picker("", selection: $selectedTemplate) {
+                        ForEach(templates) { template in
+                            Text(template.label).tag(Optional(template))
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                    .onAppear {
+                        if selectedTemplate == nil || !templates.contains(where: { $0.id == selectedTemplate?.id }) {
+                            selectedTemplate = templates.first
+                            includeMain = false
+                        }
+                    }
+                    .onChange(of: selectedTemplate) { _, _ in
+                        includeMain = false
+                    }
+                }
+
+                if selectedTemplate?.makeContentWithMain != nil {
+                    Toggle("Generate main method", isOn: $includeMain)
+                        .toggleStyle(.checkbox)
+                        .font(.system(size: 12))
+                }
+            }
+
             HStack {
+                Spacer()
                 Button("Cancel") { dismiss() }
                 Button("Create") {
-                    onCreate()
+                    let content = selectedTemplate.map { tmpl in
+                        let baseName = name.contains(".")
+                            ? String(name.split(separator: ".").dropLast().joined(separator: "."))
+                            : name
+                        if includeMain, let withMain = tmpl.makeContentWithMain {
+                            return withMain(baseName)
+                        }
+                        return tmpl.makeContent(baseName)
+                    }
+                    onCreate(content)
                     dismiss()
                 }
                 .buttonStyle(.borderedProminent)
@@ -150,5 +214,6 @@ private struct CreationSheet: View {
             }
         }
         .padding(24)
+        .frame(width: 300)
     }
 }

@@ -60,9 +60,10 @@ final class WorkspaceState {
 
     // MARK: - File / Folder Mutations
 
-    func createFile(named name: String, in parent: FileNode) {
+    func createFile(named name: String, in parent: FileNode, content: String? = nil) {
         let url = parent.url.appendingPathComponent(name)
-        guard FileManager.default.createFile(atPath: url.path, contents: nil) else { return }
+        let data = content.flatMap { $0.isEmpty ? nil : Data($0.utf8) }
+        guard FileManager.default.createFile(atPath: url.path, contents: data) else { return }
         let node = FileNode(url: url)
         insertSorted(node, into: parent)
         openFile(node)
