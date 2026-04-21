@@ -59,9 +59,14 @@ struct FileTreeRowView: View {
                     workspace.selectedNode = node
                     workspace.openFile(node)
                 } label: {
-                    Label(node.name, systemImage: sfSymbol(for: node.fileExtension))
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Label {
+                        Text(node.name)
+                    } icon: {
+                        Image(systemName: sfSymbol(for: node.fileExtension))
+                            .foregroundStyle(iconColor(for: node.fileExtension))
+                    }
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(.plain)
             }
@@ -105,6 +110,26 @@ struct FileTreeRowView: View {
         }
     }
 
+    private func iconColor(for ext: String) -> Color {
+        switch ext.lowercased() {
+        case "swift":                       return .orange
+        case "js":                          return Color(red: 0.95, green: 0.77, blue: 0.06)
+        case "ts":                          return .blue
+        case "json":                        return .yellow
+        case "md", "markdown":              return .gray
+        case "html", "htm":                 return Color(red: 0.9, green: 0.45, blue: 0.1)
+        case "css":                         return .blue
+        case "py":                          return Color(red: 0.22, green: 0.56, blue: 0.80)
+        case "sh", "zsh":                   return .green
+        case "png", "jpg", "jpeg",
+             "gif", "svg", "webp":          return .purple
+        case "pdf":                         return .red
+        case "java", "kt":                  return Color(red: 0.8, green: 0.3, blue: 0.1)
+        case "xml", "plist":                return .teal
+        default:                            return .secondary
+        }
+    }
+
     private func sfSymbol(for ext: String) -> String {
         switch ext.lowercased() {
         case "swift":           return "swift"
@@ -120,6 +145,7 @@ struct FileTreeRowView: View {
              "svg", "webp":     return "photo"
         case "pdf":             return "doc.richtext"
         case "txt":             return "doc.plaintext"
+        case "java", "kt":      return "cup.and.saucer"
         case "xml", "plist":    return "chevron.left.forwardslash.chevron.right"
         default:                return "doc"
         }

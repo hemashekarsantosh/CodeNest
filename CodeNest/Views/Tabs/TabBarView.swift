@@ -90,6 +90,7 @@ private struct TabPillView: View {
              "svg", "webp":     return "photo"
         case "pdf":             return "doc.richtext"
         case "txt":             return "doc.plaintext"
+        case "java", "kt":      return "cup.and.saucer"
         case "xml", "plist":    return "chevron.left.forwardslash.chevron.right"
         default:                return "doc"
         }
