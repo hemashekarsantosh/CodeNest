@@ -24,6 +24,7 @@ struct OutputTabView: View {
                 Button("Clear") {
                     workspace.runOutput = ""
                 }
+                .buttonStyle(.plain)
                 .font(.system(size: 11))
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)

@@ -20,22 +20,20 @@ struct BottomPanelView: View {
                 tabButton("Output", tab: .output)
                 tabButton("Terminal", tab: .terminal)
                 Spacer()
-                if workspace.selectedBottomTab == .output {
-                    if workspace.isRunning {
-                        ProgressView()
-                            .controlSize(.small)
-                            .padding(.trailing, 4)
-                    }
-                    Button {
-                        workspace.runOutput = ""
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 10))
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
-                    .padding(.trailing, 10)
+                if workspace.isRunning {
+                    ProgressView()
+                        .controlSize(.small)
+                        .padding(.trailing, 4)
                 }
+                Button {
+                    workspace.isBottomPanelVisible = false
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                .padding(.trailing, 10)
             }
             .frame(height: 28)
             .background(Color(nsColor: .controlBackgroundColor))

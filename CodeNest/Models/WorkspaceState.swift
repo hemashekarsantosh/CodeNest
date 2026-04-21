@@ -149,6 +149,7 @@ final class WorkspaceState {
 
     // MARK: - Bottom Panel
     var selectedBottomTab: BottomTab = .output
+    var isBottomPanelVisible: Bool = false
     var terminalSession: ShellSession?
 
     // MARK: - Run Code
@@ -174,9 +175,11 @@ final class WorkspaceState {
         guard (try? content.write(to: tmp, atomically: true, encoding: .utf8)) != nil else { return }
 
         if selectedBottomTab == .terminal {
+            isBottomPanelVisible = true
             terminalSession?.send("swift \(tmp.path) && rm -f \(tmp.path)\n")
         } else {
             isRunning = true
+            isBottomPanelVisible = true
             runOutput = ""
             Task.detached {
                 let output = await Self.captureOutput(tmpURL: tmp)
