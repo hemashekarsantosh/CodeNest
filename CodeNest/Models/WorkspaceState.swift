@@ -148,6 +148,15 @@ final class WorkspaceState {
         openFile(node)
     }
 
+    // MARK: - Help
+    var isHelpPresented: Bool = false
+    var helpTab: HelpTab = .shortcuts
+
+    func openHelp(tab: HelpTab = .shortcuts) {
+        helpTab = tab
+        isHelpPresented = true
+    }
+
     // MARK: - Bottom Panel
     var selectedBottomTab: BottomTab = .output
     var isBottomPanelVisible: Bool = false

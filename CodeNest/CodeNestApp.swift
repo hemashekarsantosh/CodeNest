@@ -33,6 +33,15 @@ struct CodeNestApp: App {
                 }
                 .keyboardShortcut("r", modifiers: .command)
             }
+            CommandGroup(replacing: .help) {
+                Button("Keyboard Shortcuts") {
+                    workspace.openHelp(tab: .shortcuts)
+                }
+                .keyboardShortcut("/", modifiers: .command)
+                Button("About CodeNest") {
+                    workspace.openHelp(tab: .about)
+                }
+            }
         }
     }
 }

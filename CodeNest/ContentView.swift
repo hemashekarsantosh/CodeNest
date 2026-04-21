@@ -55,6 +55,10 @@ struct ContentView: View {
                 .help(isSidebarCollapsed ? "Show Sidebar" : "Hide Sidebar")
             }
         }
+        .sheet(isPresented: Bindable(workspace).isHelpPresented) {
+            HelpView(tab: workspace.helpTab)
+                .environment(workspace)
+        }
         .onAppear {
             workspace.restoreWorkspaceIfNeeded()
         }
