@@ -15,8 +15,8 @@ enum Framework: String, CaseIterable, Identifiable {
     var iconName: String {
         switch self {
         case .springBoot: return "leaf.fill"
-        case .angular:    return "triangle.fill"
-        case .react:      return "circle.hexagongrid.fill"
+        case .angular:    return "shield.fill"
+        case .react:      return "atom"
         }
     }
 }

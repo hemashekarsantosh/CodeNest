@@ -23,7 +23,10 @@ struct NewProjectSheet: View {
 
     @State private var options = ProjectOptions()
     @State private var locationURL: URL? = nil
-    @State private var locationDisplayPath: String = ""
+
+    private var locationDisplayPath: String {
+        locationURL?.path ?? ""
+    }
 
     // Spring Initializr metadata
     @State private var metadataState: MetadataState = .idle
@@ -184,6 +187,8 @@ struct NewProjectSheet: View {
         .frame(width: 520)
         .fixedSize(horizontal: false, vertical: true)
         .onAppear {
+            // Default to the currently open folder; fall back to the user's home directory.
+            locationURL = workspace.rootNode?.url ?? FileManager.default.homeDirectoryForCurrentUser
             if options.framework == .springBoot { loadMetadataIfNeeded() }
         }
     }
@@ -359,7 +364,6 @@ struct NewProjectSheet: View {
 
         guard panel.runModal() == .OK, let url = panel.url else { return }
         locationURL = url
-        locationDisplayPath = url.path
     }
 
     private func createProject() async {
@@ -388,6 +392,18 @@ struct NewProjectSheet: View {
     }
 }
 
+// MARK: - Framework brand colors
+
+private extension Framework {
+    var brandColor: Color {
+        switch self {
+        case .springBoot: return Color(red: 0.427, green: 0.702, blue: 0.247) // Spring green
+        case .angular:    return Color(red: 0.867, green: 0.000, blue: 0.192) // Angular red
+        case .react:      return Color(red: 0.380, green: 0.855, blue: 0.984) // React cyan
+        }
+    }
+}
+
 // MARK: - Framework Card
 
 private struct FrameworkCard: View {
@@ -397,24 +413,38 @@ private struct FrameworkCard: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 8) {
-                Image(systemName: framework.iconName)
-                    .font(.system(size: 24))
-                    .foregroundStyle(isSelected ? .white : .secondary)
+            VStack(spacing: 10) {
+                // Icon badge
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(framework.brandColor)
+                        .frame(width: 44, height: 44)
+                    Image(systemName: framework.iconName)
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundStyle(.white)
+                }
+
                 Text(framework.rawValue)
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(isSelected ? .white : .primary)
+                    .foregroundStyle(.primary)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
+            .padding(.vertical, 14)
             .padding(.horizontal, 8)
-            .background(isSelected ? Color.accentColor : Color(nsColor: .controlBackgroundColor))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .background(
+                isSelected
+                    ? framework.brandColor.opacity(0.08)
+                    : Color(nsColor: .controlBackgroundColor)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 10))
             .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(isSelected ? Color.accentColor : Color(nsColor: .separatorColor), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(
+                        isSelected ? framework.brandColor : Color(nsColor: .separatorColor),
+                        lineWidth: isSelected ? 1.5 : 1
+                    )
             )
         }
         .buttonStyle(.plain)
