@@ -18,6 +18,11 @@ struct CodeNestApp: App {
         }
         .commands {
             CommandGroup(replacing: .newItem) {
+                Button("New Project...") {
+                    workspace.showNewProjectSheet = true
+                }
+                .keyboardShortcut("n", modifiers: [.command, .shift])
+                Divider()
                 Button("Open File...") {
                     workspace.openFileFromPanel()
                 }

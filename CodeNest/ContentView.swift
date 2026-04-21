@@ -59,6 +59,10 @@ struct ContentView: View {
             HelpView(tab: workspace.helpTab)
                 .environment(workspace)
         }
+        .sheet(isPresented: Bindable(workspace).showNewProjectSheet) {
+            NewProjectSheet()
+                .environment(workspace)
+        }
         .onAppear {
             workspace.restoreWorkspaceIfNeeded()
         }

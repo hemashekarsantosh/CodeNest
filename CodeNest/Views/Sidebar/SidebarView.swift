@@ -37,6 +37,15 @@ struct SidebarView: View {
                     .help("New Folder")
                 }
                 Button {
+                    workspace.showNewProjectSheet = true
+                } label: {
+                    Image(systemName: "plus.square.on.square")
+                        .font(.system(size: 12))
+                }
+                .buttonStyle(.plain)
+                .help("New Project")
+
+                Button {
                     workspace.openFolder()
                 } label: {
                     Image(systemName: "arrow.up.right.square")
@@ -89,10 +98,14 @@ struct SidebarView: View {
                         .foregroundStyle(.tertiary)
                     Text("No folder open")
                         .foregroundStyle(.secondary)
+                    Button("New Project...") {
+                        workspace.showNewProjectSheet = true
+                    }
+                    .buttonStyle(.borderedProminent)
                     Button("Open Folder...") {
                         workspace.openFolder()
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.bordered)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }

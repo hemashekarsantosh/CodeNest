@@ -23,6 +23,9 @@ final class WorkspaceState {
         openTabs.first { $0.id == activeTabID }
     }
 
+    // MARK: - New Project Sheet
+    var showNewProjectSheet: Bool = false
+
     // MARK: - Open Folder
     func openFolder() {
         let panel = NSOpenPanel()
@@ -32,7 +35,10 @@ final class WorkspaceState {
         panel.prompt = "Open Folder"
 
         guard panel.runModal() == .OK, let url = panel.url else { return }
+        openFolderURL(url)
+    }
 
+    func openFolderURL(_ url: URL) {
         _ = url.startAccessingSecurityScopedResource()
         if let bookmark = try? url.bookmarkData(
             options: .withSecurityScope,
@@ -47,6 +53,35 @@ final class WorkspaceState {
         activeTabID = nil
         selectedNode = nil
         loadChildren(of: rootNode!)
+    }
+
+    // MARK: - Create Project
+
+    /// Local scaffold — used for Angular and React.
+    func createProject(options: ProjectOptions, at parentURL: URL) {
+        let projectURL = parentURL.appendingPathComponent(options.name)
+        do {
+            try FileManager.default.createDirectory(at: projectURL, withIntermediateDirectories: true)
+        } catch {
+            return
+        }
+
+        for (relativePath, content) in options.scaffold.files(options: options) {
+            let fileURL = projectURL.appendingPathComponent(relativePath)
+            let dir = fileURL.deletingLastPathComponent()
+            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            FileManager.default.createFile(atPath: fileURL.path, contents: Data(content.utf8))
+        }
+
+        openFolderURL(projectURL)
+    }
+
+    /// Spring Boot via Spring Initializr — downloads and extracts the zip, then opens the project.
+    /// `projectName` is the artifact id / base directory inside the zip.
+    func openProjectFromExtractedZip(parentURL: URL, projectName: String) {
+        let projectURL = parentURL.appendingPathComponent(projectName)
+        guard FileManager.default.fileExists(atPath: projectURL.path) else { return }
+        openFolderURL(projectURL)
     }
 
     // MARK: - File Tree Loading
@@ -243,5 +278,6 @@ final class WorkspaceState {
 
         rootNode = FileNode(url: url)
         loadChildren(of: rootNode!)
+        // Note: bookmark already saved above; don't call openFolderURL to avoid double-saving
     }
 }
