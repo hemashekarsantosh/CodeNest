@@ -15,9 +15,22 @@ struct InitializrVersionOption: Identifiable, Hashable {
     let isDefault: Bool
 }
 
+struct DependencyOption: Identifiable, Hashable {
+    let id: String        // e.g. "web", "data-jpa"
+    let name: String      // e.g. "Spring Web"
+    let description: String
+}
+
+struct DependencyCategory: Identifiable {
+    let id: String                       // lowercased name, spaces→dashes
+    let name: String                     // e.g. "Web", "SQL"
+    let dependencies: [DependencyOption]
+}
+
 struct InitializrMetadata {
     let bootVersions: [InitializrVersionOption]
     let javaVersions: [InitializrVersionOption]
+    let dependencyCategories: [DependencyCategory]
 }
 
 // MARK: - Service
@@ -69,7 +82,13 @@ struct SpringInitializrService {
             throw SpringInitializrError.parseError
         }
 
-        return InitializrMetadata(bootVersions: bootVersions, javaVersions: javaVersions)
+        let dependencyCategories = parseDependencyCategories(json["dependencies"])
+
+        return InitializrMetadata(
+            bootVersions: bootVersions,
+            javaVersions: javaVersions,
+            dependencyCategories: dependencyCategories
+        )
     }
 
     private static func parseVersionGroup(_ raw: Any?) -> [InitializrVersionOption] {
@@ -79,6 +98,30 @@ struct SpringInitializrService {
         return values.compactMap { item in
             guard let id = item["id"] as? String, let name = item["name"] as? String else { return nil }
             return InitializrVersionOption(id: id, name: name, isDefault: id == defaultID)
+        }
+    }
+
+    private static func parseDependencyCategories(_ raw: Any?) -> [DependencyCategory] {
+        guard let root = raw as? [String: Any],
+              let categoryArray = root["values"] as? [[String: Any]] else { return [] }
+
+        return categoryArray.compactMap { categoryDict -> DependencyCategory? in
+            guard let categoryName = categoryDict["name"] as? String,
+                  let depArray = categoryDict["values"] as? [[String: Any]] else { return nil }
+
+            let categoryId = categoryName
+                .lowercased()
+                .replacingOccurrences(of: " ", with: "-")
+
+            let deps: [DependencyOption] = depArray.compactMap { depDict in
+                guard let id = depDict["id"] as? String,
+                      let name = depDict["name"] as? String else { return nil }
+                let description = depDict["description"] as? String ?? ""
+                return DependencyOption(id: id, name: name, description: description)
+            }
+
+            guard !deps.isEmpty else { return nil }
+            return DependencyCategory(id: categoryId, name: categoryName, dependencies: deps)
         }
     }
 
@@ -114,6 +157,12 @@ struct SpringInitializrService {
             URLQueryItem(name: "packaging",   value: "jar"),
             URLQueryItem(name: "javaVersion", value: options.javaVersion),
         ]
+
+        if !options.selectedDependencies.isEmpty {
+            let depsValue = options.selectedDependencies.sorted().joined(separator: ",")
+            components?.queryItems?.append(URLQueryItem(name: "dependencies", value: depsValue))
+        }
+
         return components?.url
     }
 

@@ -30,8 +30,8 @@ struct PackagesPanelView: View {
                     .listStyle(.sidebar)
                 } else {
                     List {
-                        ForEach(sourceRoots, id: \.label) { sourceRoot in
-                            PackageRowView(node: sourceRoot.node, sourceRootLabel: sourceRoot.label)
+                        ForEach(sourceRoots) { sourceRoot in
+                            PackageRowView(sourceRoot: sourceRoot, sourceRootLabel: sourceRoot.label)
                         }
                     }
                     .listStyle(.sidebar)
@@ -80,19 +80,93 @@ struct PackagesPanelView: View {
 struct SourceRoot: Identifiable {
     let id = UUID()
     let label: String
-    let node: FileNode
+    let node: FileNode?
+    let children: [SourceRoot]
+    let sourceType: SourceType?
+    
+    init(label: String, node: FileNode, sourceType: SourceType? = nil) {
+        self.label = label
+        self.node = node
+        self.children = []
+        self.sourceType = sourceType
+    }
+    
+    init(label: String, children: [SourceRoot], sourceType: SourceType? = nil) {
+        self.label = label
+        self.node = nil
+        self.children = children
+        self.sourceType = sourceType
+    }
+}
+
+enum SourceType {
+    case main
+    case test
+    case resources
+    case testResources
+    
+    var color: Color {
+        switch self {
+        case .main: return .blue
+        case .test: return .green
+        case .resources: return .purple
+        case .testResources: return .orange
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .main: return "folder.fill"
+        case .test: return "flask.fill"
+        case .resources: return "doc.fill"
+        case .testResources: return "doc.fill"
+        }
+    }
 }
 
 // MARK: - Package Row View
 struct PackageRowView: View {
     @Environment(WorkspaceState.self) var workspace
-    @Bindable var node: FileNode
+    let sourceRoot: SourceRoot
     let sourceRootLabel: String
 
     var body: some View {
+        if let node = sourceRoot.node {
+            // Leaf node with actual file system content
+            renderNode(node, sourceType: sourceRoot.sourceType)
+        } else {
+            // Group node
+            DisclosureGroup {
+                ForEach(sourceRoot.children) { child in
+                    PackageRowView(sourceRoot: child, sourceRootLabel: sourceRootLabel)
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    if let sourceType = sourceRoot.sourceType {
+                        Image(systemName: sourceType.icon)
+                            .font(.system(size: 10))
+                            .foregroundStyle(sourceType.color)
+                    } else {
+                        Image(systemName: "folder.fill")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                    }
+                    Text(sourceRoot.label)
+                        .font(.system(size: 11, weight: .medium))
+                        .lineLimit(1)
+                }
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func renderNode(_ node: FileNode, sourceType: SourceType?) -> some View {
         if node.isDirectory {
             DisclosureGroup(
-                isExpanded: $node.isExpanded,
+                isExpanded: Binding(
+                    get: { node.isExpanded },
+                    set: { node.isExpanded = $0 }
+                ),
                 content: {
                     if let children = node.children {
                         if children.isEmpty {
@@ -101,7 +175,7 @@ struct PackageRowView: View {
                                 .font(.system(size: 11))
                         } else {
                             ForEach(children) { child in
-                                PackageRowView(node: child, sourceRootLabel: sourceRootLabel)
+                                PackageRowView(sourceRoot: SourceRoot(label: child.name, node: child, sourceType: sourceType), sourceRootLabel: sourceRootLabel)
                             }
                         }
                     } else {
@@ -113,8 +187,8 @@ struct PackageRowView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "shippingbox.fill")
                             .font(.system(size: 10))
-                            .foregroundStyle(.secondary)
-                        Text(displayLabel)
+                            .foregroundStyle(sourceType?.color ?? .orange)
+                        Text(displayLabel(for: node))
                             .font(.system(size: 11))
                             .lineLimit(1)
                     }
@@ -134,9 +208,9 @@ struct PackageRowView: View {
                 workspace.openFile(node)
             }) {
                 HStack(spacing: 4) {
-                    Image(systemName: "doc.text")
+                    Image(systemName: fileIcon(for: node.name))
                         .font(.system(size: 10))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(sourceType?.color ?? .secondary)
                     Text(node.name)
                         .font(.system(size: 11))
                         .lineLimit(1)
@@ -152,7 +226,7 @@ struct PackageRowView: View {
     }
 
     // Java package label compression: collapse single-child directory chains
-    private var displayLabel: String {
+    private func displayLabel(for node: FileNode) -> String {
         var current = node
         var path = [current.name]
 
@@ -165,6 +239,19 @@ struct PackageRowView: View {
         }
 
         return path.joined(separator: ".")
+    }
+    
+    private func fileIcon(for fileName: String) -> String {
+        let ext = (fileName as NSString).pathExtension.lowercased()
+        switch ext {
+        case "java": return "doc.text.fill"
+        case "kt", "kts": return "doc.text.fill"
+        case "xml": return "doc.badge.gearshape"
+        case "properties": return "doc.text"
+        case "json": return "curlybraces"
+        case "yml", "yaml": return "doc.text"
+        default: return "doc"
+        }
     }
 }
 
@@ -198,33 +285,105 @@ enum ProjectTypeDetector {
     }
 
     private static func loadJavaSourceRoots(from rootURL: URL) async -> [SourceRoot] {
-        var roots: [SourceRoot] = []
+        var mainEntries: [(String, SourceRoot)] = []
+        var testEntries: [(String, SourceRoot)] = []
+        var resourcesChildren: [SourceRoot] = []
+        var testResourcesChildren: [SourceRoot] = []
 
+        // Helper to process a given source directory (java or kotlin)
+        func processSourceDir(baseURL: URL, sourceType: SourceType, collectInto entries: inout [(String, SourceRoot)]) async {
+            guard FileManager.default.fileExists(atPath: baseURL.path) else { return }
+            let children = await FileLoader.loadChildren(of: baseURL)
+            for child in children {
+                // Compute compressed package label like IntelliJ (e.g. com.example)
+                let childURL = baseURL.appendingPathComponent(child.name)
+                let compressed = compressedPackageLabel(startingAt: childURL)
+                let sr = SourceRoot(label: child.name, node: child, sourceType: sourceType)
+                entries.append((compressed, sr))
+            }
+        }
+
+        // main/java and main/kotlin
         let mainJavaURL = rootURL.appendingPathComponent("src/main/java")
-        if FileManager.default.fileExists(atPath: mainJavaURL.path) {
-            let children = await FileLoader.loadChildren(of: mainJavaURL)
-            for child in children {
-                roots.append(SourceRoot(label: child.name, node: child))
-            }
-        }
+        let mainKotlinURL = rootURL.appendingPathComponent("src/main/kotlin")
+        await processSourceDir(baseURL: mainJavaURL, sourceType: .main, collectInto: &mainEntries)
+        await processSourceDir(baseURL: mainKotlinURL, sourceType: .main, collectInto: &mainEntries)
 
+        // test/java and test/kotlin
         let testJavaURL = rootURL.appendingPathComponent("src/test/java")
-        if FileManager.default.fileExists(atPath: testJavaURL.path) {
-            let children = await FileLoader.loadChildren(of: testJavaURL)
-            for child in children {
-                roots.append(SourceRoot(label: child.name, node: child))
-            }
-        }
+        let testKotlinURL = rootURL.appendingPathComponent("src/test/kotlin")
+        await processSourceDir(baseURL: testJavaURL, sourceType: .test, collectInto: &testEntries)
+        await processSourceDir(baseURL: testKotlinURL, sourceType: .test, collectInto: &testEntries)
 
+        // Resources
         let resourcesURL = rootURL.appendingPathComponent("src/main/resources")
         if FileManager.default.fileExists(atPath: resourcesURL.path) {
             let children = await FileLoader.loadChildren(of: resourcesURL)
             for child in children {
-                roots.append(SourceRoot(label: child.name, node: child))
+                resourcesChildren.append(SourceRoot(label: child.name, node: child, sourceType: .resources))
+            }
+        }
+        let testResourcesURL = rootURL.appendingPathComponent("src/test/resources")
+        if FileManager.default.fileExists(atPath: testResourcesURL.path) {
+            let children = await FileLoader.loadChildren(of: testResourcesURL)
+            for child in children {
+                testResourcesChildren.append(SourceRoot(label: child.name, node: child, sourceType: .testResources))
             }
         }
 
+        // Merge packages IntelliJ-style: group by compressed package name, then by source type
+        var packageMap: [String: [SourceRoot]] = [:]
+        for (label, root) in mainEntries { packageMap[label, default: []].append(root) }
+        for (label, root) in testEntries { packageMap[label, default: []].append(root) }
+
+        var roots: [SourceRoot] = []
+
+        for (packageName, sources) in packageMap.sorted(by: { $0.key < $1.key }) {
+            // Always present packages grouped under the compressed label, even if only one source exists.
+            roots.append(SourceRoot(label: packageName, children: sources))
+        }
+
+        // Add resources separately at the end
+        if !resourcesChildren.isEmpty {
+            roots.append(SourceRoot(label: "resources", children: resourcesChildren, sourceType: .resources))
+        }
+        if !testResourcesChildren.isEmpty {
+            roots.append(SourceRoot(label: "test resources", children: testResourcesChildren, sourceType: .testResources))
+        }
+
         return roots
+    }
+
+    /// Computes a compressed package label by walking single-child directory chains.
+    /// For example, a directory structure com/example/app will yield "com.example.app".
+    private static func compressedPackageLabel(startingAt url: URL) -> String {
+        var components: [String] = [url.lastPathComponent]
+        var current = url
+        let fm = FileManager.default
+
+        while true {
+            guard let items = try? fm.contentsOfDirectory(at: current, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles]) else {
+                break
+            }
+            var subdirs: [URL] = []
+            var hasFiles = false
+            for item in items {
+                if let isDir = (try? item.resourceValues(forKeys: [.isDirectoryKey]).isDirectory), isDir == true {
+                    subdirs.append(item)
+                } else {
+                    hasFiles = true
+                }
+            }
+            // Only compress when there is exactly one subdirectory and no files in the current directory
+            if subdirs.count == 1 && hasFiles == false {
+                current = subdirs[0]
+                components.append(current.lastPathComponent)
+            } else {
+                break
+            }
+        }
+
+        return components.joined(separator: ".")
     }
 
     // MARK: - Swift Detection
@@ -259,3 +418,4 @@ enum ProjectTypeDetector {
         return children.map { SourceRoot(label: $0.name, node: $0) }
     }
 }
+

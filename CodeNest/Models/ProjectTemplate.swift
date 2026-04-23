@@ -35,6 +35,7 @@ struct ProjectOptions {
     var buildTool: BuildTool = .maven
     var springBootVersion: String = "3.4.4"   // updated when metadata loads
     var javaVersion: String       = "21"       // updated when metadata loads
+    var selectedDependencies: Set<String> = []
     // React
     var useTypeScript: Bool  = true
 }
