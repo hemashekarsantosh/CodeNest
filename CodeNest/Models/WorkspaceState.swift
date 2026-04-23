@@ -7,7 +7,7 @@ import Foundation
 import AppKit
 import Observation
 
-enum SidebarTab { case files, packages, git }
+enum SidebarTab { case files, packages }
 
 @Observable
 @MainActor

@@ -17,6 +17,7 @@ struct CodeNestApp: App {
                 .environment(workspace)
                 .environment(workspace.gitState)
         }
+        .windowToolbarStyle(.unified(showsTitle: false))
         .commands {
             CommandGroup(replacing: .newItem) {
                 Button("New Project...") {

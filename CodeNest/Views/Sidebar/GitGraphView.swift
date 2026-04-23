@@ -64,7 +64,6 @@ struct GitGraphView: View {
                 }
             }
         }
-        .frame(maxHeight: 300)
     }
 
     private var graphWidth: CGFloat {

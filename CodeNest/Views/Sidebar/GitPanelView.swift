@@ -148,12 +148,28 @@ struct GitPanelView: View {
 
                 Divider()
 
-                DisclosureGroup("Recent Commits (\(gitState.commits.count))", isExpanded: $showCommits) {
-                    let graphNodes = CommitGraphLayout.compute(gitState.commits)
-                    GitGraphView(nodes: graphNodes, currentBranch: gitState.currentBranch)
+                VStack(alignment: .leading, spacing: 0) {
+                    Button(action: { showCommits.toggle() }) {
+                        HStack {
+                            Text("Recent Commits (\(gitState.commits.count))")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Image(systemName: showCommits ? "chevron.down" : "chevron.right")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal)
+                        .padding(.vertical, 6)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    if showCommits {
+                        let graphNodes = CommitGraphLayout.compute(gitState.commits)
+                        GitGraphView(nodes: graphNodes, currentBranch: gitState.currentBranch)
+                    }
                 }
-                .padding(.horizontal)
-                .padding(.vertical, 8)
             }
         }
     }

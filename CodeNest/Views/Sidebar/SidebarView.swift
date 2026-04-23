@@ -21,16 +21,6 @@ struct SidebarView: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
 
-                if gitState.isGitRepo, let branch = gitState.currentBranch {
-                    HStack(spacing: 4) {
-                        Image(systemName: "arrow.triangle.branch")
-                            .font(.system(size: 10))
-                        Text(branch)
-                            .font(.system(size: 10, weight: .medium))
-                    }
-                    .foregroundStyle(.secondary)
-                }
-
                 Spacer()
                 if workspace.rootNode != nil {
                     Button { creationMode = .file } label: {
@@ -93,17 +83,6 @@ struct SidebarView: View {
                 .foregroundColor(workspace.sidebarTab == .packages ? .accentColor : .secondary)
                 .frame(maxWidth: .infinity)
                 .help("Packages")
-
-                Button {
-                    workspace.sidebarTab = .git
-                } label: {
-                    Image(systemName: "arrow.triangle.branch")
-                        .font(.system(size: 12))
-                }
-                .buttonStyle(.plain)
-                .foregroundColor(workspace.sidebarTab == .git ? .accentColor : .secondary)
-                .frame(maxWidth: .infinity)
-                .help("Source Control")
             }
             .padding(.vertical, 4)
             .background(Color(nsColor: .controlBackgroundColor))
@@ -114,10 +93,8 @@ struct SidebarView: View {
             Group {
                 if workspace.sidebarTab == .files {
                     FilesTabView(creationMode: $creationMode, newItemName: $newItemName)
-                } else if workspace.sidebarTab == .packages {
-                    PackagesPanelView()
                 } else {
-                    GitPanelView(gitState: gitState)
+                    PackagesPanelView()
                 }
             }
         }

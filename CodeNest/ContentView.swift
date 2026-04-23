@@ -9,9 +9,11 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(WorkspaceState.self) var workspace
+    @Environment(GitState.self) var gitState
 
     @State private var sidebarWidth: CGFloat = 240
     @State private var isSidebarCollapsed: Bool = false
+    @State private var showGitPopover: Bool = false
 
     private let minSidebarWidth: CGFloat = 160
     private let maxSidebarWidth: CGFloat = 500
@@ -53,6 +55,43 @@ struct ContentView: View {
                     Image(systemName: "sidebar.left")
                 }
                 .help(isSidebarCollapsed ? "Show Sidebar" : "Hide Sidebar")
+            }
+
+            ToolbarItem(placement: .principal) {
+                if gitState.isGitRepo, let branch = gitState.currentBranch {
+                    Button {
+                        showGitPopover.toggle()
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "arrow.triangle.branch")
+                                .font(.system(size: 11))
+                            Text(branch)
+                                .font(.system(size: 12, weight: .medium))
+                            let dirtyCount = gitState.fileStatuses.count
+                            if dirtyCount > 0 {
+                                Text("\(dirtyCount)")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 1)
+                                    .background(Color.orange.opacity(0.85))
+                                    .clipShape(Capsule())
+                            }
+                        }
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color(nsColor: .controlBackgroundColor))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                    .buttonStyle(.plain)
+                    .help("Source Control – \(branch)")
+                    .popover(isPresented: $showGitPopover, arrowEdge: .bottom) {
+                        GitPanelView(gitState: gitState)
+                            .environment(workspace)
+                            .frame(width: 320, height: 500)
+                    }
+                }
             }
         }
         .sheet(isPresented: Bindable(workspace).isHelpPresented) {
