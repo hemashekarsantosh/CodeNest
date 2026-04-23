@@ -7,9 +7,14 @@ import Foundation
 import AppKit
 import Observation
 
+enum SidebarTab { case files, packages }
+
 @Observable
 @MainActor
 final class WorkspaceState {
+
+    // MARK: - Sidebar
+    var sidebarTab: SidebarTab = .files
 
     // MARK: - File Tree
     var rootNode: FileNode?

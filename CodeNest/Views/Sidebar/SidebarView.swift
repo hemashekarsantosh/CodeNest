@@ -7,7 +7,6 @@ import SwiftUI
 
 struct SidebarView: View {
     @Environment(WorkspaceState.self) var workspace
-
     @State private var creationMode: CreationMode? = nil
     @State private var newItemName: String = ""
 
@@ -59,55 +58,42 @@ struct SidebarView: View {
 
             Divider()
 
-            if let root = workspace.rootNode {
-                if let children = root.children {
-                    if children.isEmpty {
-                        VStack(spacing: 10) {
-                            Text("Folder is empty")
-                                .foregroundStyle(.secondary)
-                                .font(.system(size: 12))
-                            HStack(spacing: 8) {
-                                Button("New File") { creationMode = .file }
-                                    .buttonStyle(.borderedProminent)
-                                    .controlSize(.small)
-                                Button("New Folder") { creationMode = .folder }
-                                    .buttonStyle(.bordered)
-                                    .controlSize(.small)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .padding()
-                    } else {
-                        List {
-                            ForEach(children) { node in
-                                FileTreeRowView(node: node, parent: root)
-                            }
-                        }
-                        .listStyle(.sidebar)
-                    }
+            // Sidebar Tab Bar
+            HStack(spacing: 0) {
+                Button {
+                    workspace.sidebarTab = .files
+                } label: {
+                    Image(systemName: "folder")
+                        .font(.system(size: 12))
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(workspace.sidebarTab == .files ? .accentColor : .secondary)
+                .frame(maxWidth: .infinity)
+                .help("Files")
+
+                Button {
+                    workspace.sidebarTab = .packages
+                } label: {
+                    Image(systemName: "shippingbox")
+                        .font(.system(size: 12))
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(workspace.sidebarTab == .packages ? .accentColor : .secondary)
+                .frame(maxWidth: .infinity)
+                .help("Packages")
+            }
+            .padding(.vertical, 4)
+            .background(Color(nsColor: .controlBackgroundColor))
+
+            Divider()
+
+            // Content Area
+            Group {
+                if workspace.sidebarTab == .files {
+                    FilesTabView(creationMode: $creationMode, newItemName: $newItemName)
                 } else {
-                    List {
-                        ProgressView("Loading...")
-                    }
-                    .listStyle(.sidebar)
+                    PackagesPanelView()
                 }
-            } else {
-                VStack(spacing: 12) {
-                    Image(systemName: "folder.badge.plus")
-                        .font(.system(size: 36))
-                        .foregroundStyle(.tertiary)
-                    Text("No folder open")
-                        .foregroundStyle(.secondary)
-                    Button("New Project...") {
-                        workspace.showNewProjectSheet = true
-                    }
-                    .buttonStyle(.borderedProminent)
-                    Button("Open Folder...") {
-                        workspace.openFolder()
-                    }
-                    .buttonStyle(.bordered)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .background(Color(nsColor: .controlBackgroundColor))
@@ -121,6 +107,66 @@ struct SidebarView: View {
                 }
                 newItemName = ""
             }
+        }
+    }
+}
+
+// MARK: - Files Tab
+struct FilesTabView: View {
+    @Environment(WorkspaceState.self) var workspace
+    @Binding var creationMode: CreationMode?
+    @Binding var newItemName: String
+
+    var body: some View {
+        if let root = workspace.rootNode {
+            if let children = root.children {
+                if children.isEmpty {
+                    VStack(spacing: 10) {
+                        Text("Folder is empty")
+                            .foregroundStyle(.secondary)
+                            .font(.system(size: 12))
+                        HStack(spacing: 8) {
+                            Button("New File") { creationMode = .file }
+                                .buttonStyle(.borderedProminent)
+                                .controlSize(.small)
+                            Button("New Folder") { creationMode = .folder }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding()
+                } else {
+                    List {
+                        ForEach(children) { node in
+                            FileTreeRowView(node: node, parent: root)
+                        }
+                    }
+                    .listStyle(.sidebar)
+                }
+            } else {
+                List {
+                    ProgressView("Loading...")
+                }
+                .listStyle(.sidebar)
+            }
+        } else {
+            VStack(spacing: 12) {
+                Image(systemName: "folder.badge.plus")
+                    .font(.system(size: 36))
+                    .foregroundStyle(.tertiary)
+                Text("No folder open")
+                    .foregroundStyle(.secondary)
+                Button("New Project...") {
+                    workspace.showNewProjectSheet = true
+                }
+                .buttonStyle(.borderedProminent)
+                Button("Open Folder...") {
+                    workspace.openFolder()
+                }
+                .buttonStyle(.bordered)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }
