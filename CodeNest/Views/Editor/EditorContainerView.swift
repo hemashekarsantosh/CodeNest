@@ -10,9 +10,17 @@ struct EditorContainerView: View {
 
     var body: some View {
         if let tab = workspace.activeTab {
-            CodeTextView(text: contentBinding(for: tab), language: tab.fileNode.fileExtension)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .id(tab.id) // force NSTextView recreation on tab switch
+            switch tab.kind {
+            case .code:
+                CodeTextView(text: contentBinding(for: tab), language: tab.fileNode.fileExtension)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .id(tab.id) // force NSTextView recreation on tab switch
+
+            case .diff(let diffContent):
+                DiffTextView(content: diffContent)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .id(tab.id) // force NSTextView recreation on tab switch
+            }
         } else {
             VStack(spacing: 12) {
                 Image(systemName: "doc.text")

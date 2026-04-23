@@ -16,6 +16,7 @@ struct FileTreeRowView: View {
     @Bindable var node: FileNode
     var parent: FileNode?
     @Environment(WorkspaceState.self) var workspace
+    @Environment(GitState.self) var gitState
 
     @State private var creationMode: CreationMode? = nil
     @State private var newItemName: String = ""
@@ -69,6 +70,17 @@ struct FileTreeRowView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(.plain)
+                .overlay(alignment: .topTrailing) {
+                    if let relativePath = gitState.relativePath(for: node.url),
+                       let status = gitState.statusByPath[relativePath],
+                       !status.displayCode.trimmingCharacters(in: .whitespaces).isEmpty {
+                        Text(status.displayCode)
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 12, height: 12)
+                            .background(status.indexStatus.badgeColor.cornerRadius(2))
+                    }
+                }
             }
         }
         .contextMenu {

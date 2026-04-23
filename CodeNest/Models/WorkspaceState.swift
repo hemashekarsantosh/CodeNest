@@ -7,7 +7,7 @@ import Foundation
 import AppKit
 import Observation
 
-enum SidebarTab { case files, packages }
+enum SidebarTab { case files, packages, git }
 
 @Observable
 @MainActor
@@ -15,6 +15,7 @@ final class WorkspaceState {
 
     // MARK: - Sidebar
     var sidebarTab: SidebarTab = .files
+    let gitState: GitState = GitState()
 
     // MARK: - File Tree
     var rootNode: FileNode?
@@ -57,6 +58,7 @@ final class WorkspaceState {
         openTabs = []
         activeTabID = nil
         selectedNode = nil
+        gitState.setRoot(url)
         loadChildren(of: rootNode!)
     }
 
@@ -174,6 +176,18 @@ final class WorkspaceState {
         activeTabID = tab.id
     }
 
+    func openDiffTab(for path: String) async {
+        let diffContent = await gitState.getDiff(for: path, staged: false)
+        let tabName = URL(fileURLWithPath: path).lastPathComponent
+        let tab = TabItem(
+            fileNode: FileNode(url: URL(fileURLWithPath: path)),
+            content: diffContent,
+            kind: .diff(content: diffContent)
+        )
+        openTabs.append(tab)
+        activeTabID = tab.id
+    }
+
     // MARK: - Open File
     func openFileFromPanel() {
         let panel = NSOpenPanel()
@@ -282,6 +296,7 @@ final class WorkspaceState {
         }
 
         rootNode = FileNode(url: url)
+        gitState.setRoot(url)
         loadChildren(of: rootNode!)
         // Note: bookmark already saved above; don't call openFolderURL to avoid double-saving
     }
