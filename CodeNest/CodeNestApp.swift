@@ -15,6 +15,7 @@ struct CodeNestApp: App {
         WindowGroup {
             ContentView()
                 .environment(workspace)
+                .environment(workspace.gitState)
         }
         .commands {
             CommandGroup(replacing: .newItem) {

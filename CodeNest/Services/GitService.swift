@@ -64,6 +64,23 @@ struct GitService {
         }
     }
 
+    /// Get the last N commits from the repository.
+    nonisolated static func log(at rootURL: URL, limit: Int = 10) async -> [GitCommit] {
+        let format = "%h|%s|%an|%ad"
+        guard let output = try? await run(
+            args: ["log", "-\(limit)", "--pretty=format:\(format)", "--date=short"],
+            at: rootURL
+        ) else { return [] }
+
+        return output
+            .split(separator: "\n", omittingEmptySubsequences: true)
+            .compactMap { line in
+                let parts = line.split(separator: "|", maxSplits: 3).map(String.init)
+                guard parts.count == 4 else { return nil }
+                return GitCommit(id: parts[0], message: parts[1], author: parts[2], date: parts[3])
+            }
+    }
+
     /// Get the list of file statuses using `git status --porcelain=v1 -z`.
     /// Returns an array of GitFileStatus structs.
     nonisolated static func status(at rootURL: URL) async -> [GitFileStatus] {

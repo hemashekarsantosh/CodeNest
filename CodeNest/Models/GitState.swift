@@ -7,6 +7,7 @@ import Observation
     var currentBranch: String?
     var fileStatuses: [GitFileStatus] = []
     var statusByPath: [String: GitFileStatus] = [:]
+    var commits: [GitCommit] = []
     var commitMessage: String = ""
     var isRefreshing: Bool = false
 
@@ -14,6 +15,7 @@ import Observation
         rootURL = url
         fileStatuses = []
         statusByPath = [:]
+        commits = []
         commitMessage = ""
         refresh()
     }
@@ -24,6 +26,7 @@ import Observation
             let isGit = await GitService.isGitRepository(at: rootURL)
             let branch = await GitService.currentBranch(at: rootURL)
             let statuses = await GitService.status(at: rootURL)
+            let commits = await GitService.log(at: rootURL)
 
             let stagedCount = statuses.filter { $0.isStaged }.count
             let totalCount = statuses.count
@@ -35,6 +38,7 @@ import Observation
                 self.currentBranch = branch
                 self.fileStatuses = statuses
                 self.statusByPath = Dictionary(uniqueKeysWithValues: statuses.map { ($0.path, $0) })
+                self.commits = commits
                 self.isRefreshing = false
             }
         }

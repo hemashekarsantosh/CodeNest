@@ -3,6 +3,7 @@ import SwiftUI
 struct GitPanelView: View {
     @Bindable var gitState: GitState
     @Environment(WorkspaceState.self) var workspace
+    @State private var showCommits = true
 
     var body: some View {
         if !gitState.isGitRepo {
@@ -144,6 +145,38 @@ struct GitPanelView: View {
                     }
                     .padding(.vertical, 12)
                 }
+
+                Divider()
+
+                DisclosureGroup("Recent Commits (\(gitState.commits.count))", isExpanded: $showCommits) {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 0) {
+                            ForEach(gitState.commits) { commit in
+                                HStack(alignment: .top, spacing: 8) {
+                                    Text(commit.id)
+                                        .font(.system(size: 10, design: .monospaced))
+                                        .foregroundStyle(.secondary)
+                                        .frame(width: 48, alignment: .leading)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(commit.message)
+                                            .font(.caption)
+                                            .lineLimit(1)
+                                        Text("\(commit.author) · \(commit.date)")
+                                            .font(.caption2)
+                                            .foregroundStyle(.tertiary)
+                                    }
+                                    Spacer()
+                                }
+                                .padding(.horizontal)
+                                .padding(.vertical, 4)
+                                Divider().padding(.leading)
+                            }
+                        }
+                    }
+                    .frame(maxHeight: 200)
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 8)
             }
         }
     }
