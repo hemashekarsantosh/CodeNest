@@ -66,7 +66,7 @@ struct GitService {
 
     /// Get the last N commits from the repository.
     nonisolated static func log(at rootURL: URL, limit: Int = 10) async -> [GitCommit] {
-        let format = "%h|%s|%an|%ad"
+        let format = "%h|%p|%D|%s|%an|%ad"
         guard let output = try? await run(
             args: ["log", "-\(limit)", "--pretty=format:\(format)", "--date=short"],
             at: rootURL
@@ -75,9 +75,34 @@ struct GitService {
         return output
             .split(separator: "\n", omittingEmptySubsequences: true)
             .compactMap { line in
-                let parts = line.split(separator: "|", maxSplits: 3).map(String.init)
-                guard parts.count == 4 else { return nil }
-                return GitCommit(id: parts[0], message: parts[1], author: parts[2], date: parts[3])
+                let parts = line.split(separator: "|", maxSplits: 5).map(String.init)
+                guard parts.count == 6 else { return nil }
+
+                let id = parts[0]
+                let parentStr = parts[1]
+                let refStr = parts[2]
+                let message = parts[3]
+                let author = parts[4]
+                let date = parts[5]
+
+                // Parse parents (space-separated)
+                let parents = parentStr.isEmpty
+                    ? []
+                    : parentStr.split(separator: " ").map(String.init)
+
+                // Parse refs (comma-space-separated: "HEAD -> main, origin/main")
+                let refs = refStr.isEmpty
+                    ? []
+                    : refStr.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+
+                return GitCommit(
+                    id: id,
+                    message: message,
+                    author: author,
+                    date: date,
+                    parents: parents,
+                    refs: refs
+                )
             }
     }
 

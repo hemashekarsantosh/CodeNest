@@ -26,7 +26,7 @@ import Observation
             let isGit = await GitService.isGitRepository(at: rootURL)
             let branch = await GitService.currentBranch(at: rootURL)
             let statuses = await GitService.status(at: rootURL)
-            let commits = await GitService.log(at: rootURL)
+            let commits = await GitService.log(at: rootURL, limit: 10)
 
             let stagedCount = statuses.filter { $0.isStaged }.count
             let totalCount = statuses.count

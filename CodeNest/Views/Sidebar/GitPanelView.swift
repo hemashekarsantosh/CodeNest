@@ -149,31 +149,8 @@ struct GitPanelView: View {
                 Divider()
 
                 DisclosureGroup("Recent Commits (\(gitState.commits.count))", isExpanded: $showCommits) {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 0) {
-                            ForEach(gitState.commits) { commit in
-                                HStack(alignment: .top, spacing: 8) {
-                                    Text(commit.id)
-                                        .font(.system(size: 10, design: .monospaced))
-                                        .foregroundStyle(.secondary)
-                                        .frame(width: 48, alignment: .leading)
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(commit.message)
-                                            .font(.caption)
-                                            .lineLimit(1)
-                                        Text("\(commit.author) · \(commit.date)")
-                                            .font(.caption2)
-                                            .foregroundStyle(.tertiary)
-                                    }
-                                    Spacer()
-                                }
-                                .padding(.horizontal)
-                                .padding(.vertical, 4)
-                                Divider().padding(.leading)
-                            }
-                        }
-                    }
-                    .frame(maxHeight: 200)
+                    let graphNodes = CommitGraphLayout.compute(gitState.commits)
+                    GitGraphView(nodes: graphNodes, currentBranch: gitState.currentBranch)
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 8)

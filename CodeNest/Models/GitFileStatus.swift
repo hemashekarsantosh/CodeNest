@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 
-enum GitStatusCode: Equatable, Sendable {
+enum GitStatusCode: Sendable {
     case modified
     case added
     case deleted
@@ -9,7 +9,7 @@ enum GitStatusCode: Equatable, Sendable {
     case untracked
     case unmodified
 
-    init?(from character: Character) {
+    nonisolated init?(from character: Character) {
         switch character {
         case "M":
             self = .modified
@@ -28,7 +28,7 @@ enum GitStatusCode: Equatable, Sendable {
         }
     }
 
-    var badgeLabel: String {
+    nonisolated var badgeLabel: String {
         switch self {
         case .modified:
             return "M"
@@ -45,7 +45,7 @@ enum GitStatusCode: Equatable, Sendable {
         }
     }
 
-    var badgeColor: Color {
+    nonisolated var badgeColor: Color {
         switch self {
         case .modified:
             return .orange
@@ -62,8 +62,25 @@ enum GitStatusCode: Equatable, Sendable {
         }
     }
 
-    var isTracked: Bool {
-        self != .untracked && self != .unmodified
+    nonisolated var isTracked: Bool {
+        switch self {
+        case .untracked, .unmodified:
+            return false
+        default:
+            return true
+        }
+    }
+}
+
+extension GitStatusCode: Equatable {
+    nonisolated static func == (lhs: GitStatusCode, rhs: GitStatusCode) -> Bool {
+        switch (lhs, rhs) {
+        case (.modified, .modified), (.added, .added), (.deleted, .deleted),
+             (.renamed, .renamed), (.untracked, .untracked), (.unmodified, .unmodified):
+            return true
+        default:
+            return false
+        }
     }
 }
 
@@ -73,11 +90,11 @@ struct GitFileStatus: Identifiable, Sendable {
     let indexStatus: GitStatusCode // staged (index vs HEAD)
     let worktreeStatus: GitStatusCode // unstaged (worktree vs index)
 
-    var isStaged: Bool {
+    nonisolated var isStaged: Bool {
         indexStatus != .unmodified && indexStatus != .untracked
     }
 
-    var displayCode: String {
+    nonisolated var displayCode: String {
         let index = indexStatus.badgeLabel
         let worktree = worktreeStatus.badgeLabel
 
