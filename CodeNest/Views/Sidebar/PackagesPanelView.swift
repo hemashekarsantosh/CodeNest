@@ -202,26 +202,26 @@ enum ProjectTypeDetector {
 
         let mainJavaURL = rootURL.appendingPathComponent("src/main/java")
         if FileManager.default.fileExists(atPath: mainJavaURL.path) {
-            let mainNode = FileNode(url: mainJavaURL)
             let children = await FileLoader.loadChildren(of: mainJavaURL)
-            mainNode.children = children
-            roots.append(SourceRoot(label: "main", node: mainNode))
+            for child in children {
+                roots.append(SourceRoot(label: child.name, node: child))
+            }
         }
 
         let testJavaURL = rootURL.appendingPathComponent("src/test/java")
         if FileManager.default.fileExists(atPath: testJavaURL.path) {
-            let testNode = FileNode(url: testJavaURL)
             let children = await FileLoader.loadChildren(of: testJavaURL)
-            testNode.children = children
-            roots.append(SourceRoot(label: "test", node: testNode))
+            for child in children {
+                roots.append(SourceRoot(label: child.name, node: child))
+            }
         }
 
         let resourcesURL = rootURL.appendingPathComponent("src/main/resources")
         if FileManager.default.fileExists(atPath: resourcesURL.path) {
-            let resourcesNode = FileNode(url: resourcesURL)
             let children = await FileLoader.loadChildren(of: resourcesURL)
-            resourcesNode.children = children
-            roots.append(SourceRoot(label: "resources", node: resourcesNode))
+            for child in children {
+                roots.append(SourceRoot(label: child.name, node: child))
+            }
         }
 
         return roots
@@ -238,10 +238,8 @@ enum ProjectTypeDetector {
             return []
         }
 
-        let sourcesNode = FileNode(url: sourcesURL)
         let children = await FileLoader.loadChildren(of: sourcesURL)
-        sourcesNode.children = children
-        return [SourceRoot(label: "Sources", node: sourcesNode)]
+        return children.map { SourceRoot(label: $0.name, node: $0) }
     }
 
     // MARK: - Node Detection
@@ -252,16 +250,12 @@ enum ProjectTypeDetector {
     private static func loadNodeSourceRoots(from rootURL: URL) async -> [SourceRoot] {
         let srcURL = rootURL.appendingPathComponent("src")
         if FileManager.default.fileExists(atPath: srcURL.path) {
-            let srcNode = FileNode(url: srcURL)
             let children = await FileLoader.loadChildren(of: srcURL)
-            srcNode.children = children
-            return [SourceRoot(label: "src", node: srcNode)]
+            return children.map { SourceRoot(label: $0.name, node: $0) }
         }
 
         // Fallback to root if src/ doesn't exist
-        let rootNode = FileNode(url: rootURL)
         let children = await FileLoader.loadChildren(of: rootURL)
-        rootNode.children = children
-        return [SourceRoot(label: "root", node: rootNode)]
+        return children.map { SourceRoot(label: $0.name, node: $0) }
     }
 }
