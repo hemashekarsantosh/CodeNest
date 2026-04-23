@@ -162,7 +162,7 @@ All new code must be explicit about actor isolation and `Sendable` conformance.
 
 ## License
 
-This project is proprietary and currently in development.
+This project is open source and currently in development.
 
 ## Author
 
