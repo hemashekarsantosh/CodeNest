@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import Darwin
 
 @Observable @MainActor final class GitState {
     var rootURL: URL?
@@ -11,12 +12,16 @@ import Observation
     var commitMessage: String = ""
     var isRefreshing: Bool = false
 
+    private var fsSources: [DispatchSourceFileSystemObject] = []
+    private var debounceTask: Task<Void, Never>?
+
     func setRoot(_ url: URL) {
         rootURL = url
         fileStatuses = []
         statusByPath = [:]
         commits = []
         commitMessage = ""
+        startWatching(at: url)
         refresh()
     }
 
@@ -121,6 +126,59 @@ import Observation
         }
     }
 
+    nonisolated private func startWatching(at url: URL) {
+        let targets = [
+            url.appendingPathComponent(".git/index"),
+            url.appendingPathComponent(".git/HEAD"),
+            url.appendingPathComponent(".git/refs")
+        ]
+
+        for target in targets {
+            let fd = open(target.path, O_EVTONLY)
+            guard fd >= 0 else { continue }
+
+            let source = DispatchSource.makeFileSystemObjectSource(
+                fileDescriptor: fd,
+                eventMask: [.write, .rename, .delete, .attrib],
+                queue: .global()
+            )
+
+            source.setEventHandler { [weak self] in
+                self?.scheduleRefresh()
+            }
+
+            source.setCancelHandler {
+                close(fd)
+            }
+
+            source.resume()
+            DispatchQueue.main.async { [weak self] in
+                self?.fsSources.append(source)
+            }
+        }
+    }
+
+    nonisolated private func stopWatching() {
+        DispatchQueue.main.sync {
+            fsSources.forEach { $0.cancel() }
+            fsSources.removeAll()
+            debounceTask?.cancel()
+            debounceTask = nil
+        }
+    }
+
+    nonisolated private func scheduleRefresh() {
+        DispatchQueue.main.async { [weak self] in
+            self?.debounceTask?.cancel()
+            let task = Task {
+                try? await Task.sleep(nanoseconds: 300_000_000)
+                guard !Task.isCancelled else { return }
+                await self?.refresh() ?? ()
+            }
+            self?.debounceTask = task
+        }
+    }
+
     func getDiff(for path: String, staged: Bool) async -> String {
         guard let rootURL else { return "" }
         return await GitService.diff(for: path, staged: staged, at: rootURL)
@@ -137,5 +195,9 @@ import Observation
             return "."
         }
         return nil
+    }
+
+    deinit {
+        stopWatching()
     }
 }
