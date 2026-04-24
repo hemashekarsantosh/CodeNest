@@ -11,58 +11,54 @@ struct GitGraphView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 8) {
                 ForEach(Array(nodes.enumerated()), id: \.element.commit.id) { index, node in
-                    HStack(alignment: .top, spacing: 8) {
-                        // Graph section
-                        Canvas { context, size in
-                            drawGraphRow(
-                                node: node,
-                                isLastRow: index == nodes.count - 1,
-                                context: &context,
-                                size: size
-                            )
-                        }
-                        .frame(width: graphWidth, height: rowHeight)
-                        .background(.clear)
+                    ZStack(alignment: .topLeading) {
+                        // Card background
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(.background)
+                            .stroke(.separator, lineWidth: 1)
 
-                        // Commit info section
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            // Hash + refs on one line
                             HStack(spacing: 4) {
                                 Text(node.commit.id)
-                                    .font(.system(size: 10, design: .monospaced))
+                                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
                                     .foregroundStyle(.secondary)
-                                    .lineLimit(1)
 
                                 if !node.commit.refs.isEmpty {
-                                    ForEach(node.commit.refs, id: \.self) { ref in
+                                    ForEach(node.commit.refs.prefix(2), id: \.self) { ref in
                                         RefBadge(ref: ref, currentBranch: currentBranch)
                                     }
+                                    if node.commit.refs.count > 2 {
+                                        Text("+\(node.commit.refs.count - 2)")
+                                            .font(.system(size: 10))
+                                            .foregroundStyle(.tertiary)
+                                    }
                                 }
+
+                                Spacer()
                             }
 
+                            // Message
                             Text(node.commit.message)
-                                .font(.caption)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(.primary)
                                 .lineLimit(1)
 
+                            // Author · Date
                             Text("\(node.commit.author) · \(node.commit.date)")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
                                 .lineLimit(1)
                         }
-                        .frame(maxHeight: rowHeight, alignment: .top)
-
-                        Spacer()
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                        .padding(8)
                     }
-                    .padding(.horizontal, graphPadding)
-                    .padding(.vertical, 2)
-                    .frame(height: rowHeight)
-
-                    if index < nodes.count - 1 {
-                        Divider().padding(.leading, graphPadding + graphWidth)
-                    }
+                    .frame(minHeight: 60)
                 }
             }
+            .padding(6)
         }
     }
 
@@ -154,7 +150,7 @@ struct RefBadge: View {
 
     var body: some View {
         Text(displayLabel)
-            .font(.caption2)
+            .font(.caption)
             .foregroundStyle(isCurrentBranch ? .white : .primary)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
