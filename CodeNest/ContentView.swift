@@ -89,7 +89,7 @@ struct ContentView: View {
                     .popover(isPresented: $showGitPopover, arrowEdge: .bottom) {
                         GitPanelView(gitState: gitState)
                             .environment(workspace)
-                            .frame(width: 320, height: 500)
+                            .frame(width: 700, height: 500)
                     }
                 }
             }
