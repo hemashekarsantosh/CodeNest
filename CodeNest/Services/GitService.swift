@@ -72,38 +72,39 @@ struct GitService {
             at: rootURL
         ) else { return [] }
 
-        return output
-            .split(separator: "\n", omittingEmptySubsequences: true)
-            .compactMap { line in
-                let parts = line.split(separator: "|", maxSplits: 5).map(String.init)
-                guard parts.count == 6 else { return nil }
+        let lines = output.split(separator: "\n", omittingEmptySubsequences: true)
 
-                let id = parts[0]
-                let parentStr = parts[1]
-                let refStr = parts[2]
-                let message = parts[3]
-                let author = parts[4]
-                let date = parts[5]
+        let commits = lines.compactMap { line -> GitCommit? in
+            let parts = line.split(separator: "|", maxSplits: 5, omittingEmptySubsequences: false).map(String.init)
+            guard parts.count == 6 else { return nil }
 
-                // Parse parents (space-separated)
-                let parents = parentStr.isEmpty
-                    ? []
-                    : parentStr.split(separator: " ").map(String.init)
+            let id = parts[0]
+            let parentStr = parts[1]
+            let refStr = parts[2]
+            let message = parts[3]
+            let author = parts[4]
+            let date = parts[5]
 
-                // Parse refs (comma-space-separated: "HEAD -> main, origin/main")
-                let refs = refStr.isEmpty
-                    ? []
-                    : refStr.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+            // Parse parents (space-separated)
+            let parents = parentStr.isEmpty
+                ? []
+                : parentStr.split(separator: " ").map(String.init)
 
-                return GitCommit(
-                    id: id,
-                    message: message,
-                    author: author,
-                    date: date,
-                    parents: parents,
-                    refs: refs
-                )
-            }
+            // Parse refs (comma-space-separated: "HEAD -> main, origin/main")
+            let refs = refStr.isEmpty
+                ? []
+                : refStr.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+
+            return GitCommit(
+                id: id,
+                message: message,
+                author: author,
+                date: date,
+                parents: parents,
+                refs: refs
+            )
+        }
+        return commits
     }
 
     /// Get the list of file statuses using `git status --porcelain=v1 -z`.

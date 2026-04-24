@@ -168,6 +168,7 @@ struct GitPanelView: View {
                     if showCommits {
                         let graphNodes = CommitGraphLayout.compute(gitState.commits)
                         GitGraphView(nodes: graphNodes, currentBranch: gitState.currentBranch)
+                            .frame(height: min(CGFloat(graphNodes.count), 10) * 28 + 8)
                     }
                 }
             }
