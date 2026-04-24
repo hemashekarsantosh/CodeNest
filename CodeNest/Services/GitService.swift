@@ -112,6 +112,7 @@ struct GitService {
     nonisolated static func status(at rootURL: URL) async -> [GitFileStatus] {
         do {
             let output = try await run(args: ["status", "--porcelain=v1", "-z"], at: rootURL)
+            print("[DEBUG] Raw git status output (porcelain):\n\(output.debugDescription)")
             return parseStatusOutput(output, rootURL: rootURL)
         } catch {
             return []
@@ -182,16 +183,22 @@ struct GitService {
         var statuses: [GitFileStatus] = []
 
         for record in records {
+            print("[DEBUG] Parsing record: \(record.debugDescription)")
             let recordStr = String(record)
-            guard recordStr.count >= 3 else { continue }
+            guard recordStr.count >= 2 else { continue }
 
             let indexChar = recordStr[recordStr.index(recordStr.startIndex, offsetBy: 0)]
             let worktreeChar = recordStr[recordStr.index(recordStr.startIndex, offsetBy: 1)]
-            let path = String(recordStr.dropFirst(3))
+
+            // Git porcelain can be "XY PATH" or "X Y PATH"
+            // Determine separator position
+            let separatorOffset = recordStr.count > 2 && recordStr[recordStr.index(recordStr.startIndex, offsetBy: 2)] == " " ? 3 : 2
+            let path = String(recordStr.dropFirst(separatorOffset)).trimmingCharacters(in: .whitespaces)
 
             guard let indexStatus = GitStatusCode(from: indexChar),
                   let worktreeStatus = GitStatusCode(from: worktreeChar)
             else {
+                print("⚠️ Git: Failed to parse status for: \(recordStr)")
                 continue
             }
 
@@ -201,9 +208,12 @@ struct GitService {
                 indexStatus: indexStatus,
                 worktreeStatus: worktreeStatus
             )
+            print("[DEBUG] Parsed: path=\(fileStatus.path), indexStatus=\(fileStatus.indexStatus), worktreeStatus=\(fileStatus.worktreeStatus), isStaged=\(fileStatus.isStaged)")
+            print("📋 Git: \(indexStatus == .unmodified ? " " : String(indexChar))\(worktreeStatus == .unmodified ? " " : String(worktreeChar)) \(path) (staged: \(fileStatus.isStaged))")
             statuses.append(fileStatus)
         }
 
         return statuses
     }
 }
+

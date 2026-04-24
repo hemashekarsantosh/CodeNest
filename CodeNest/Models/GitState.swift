@@ -129,13 +129,15 @@ import Darwin
     nonisolated private func startWatching(at url: URL) {
         let targets = [
             url.appendingPathComponent(".git/index"),
-            url.appendingPathComponent(".git/HEAD"),
-            url.appendingPathComponent(".git/refs")
+            url.appendingPathComponent(".git/HEAD")
         ]
 
         for target in targets {
             let fd = open(target.path, O_EVTONLY)
-            guard fd >= 0 else { continue }
+            guard fd >= 0 else {
+                print("⚠️ Git: Failed to open \(target.path) for watching")
+                continue
+            }
 
             let source = DispatchSource.makeFileSystemObjectSource(
                 fileDescriptor: fd,

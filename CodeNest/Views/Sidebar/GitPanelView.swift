@@ -54,7 +54,7 @@ struct GitPanelView: View {
                         VStack(alignment: .leading, spacing: 12) {
                             let stagedFiles = gitState.fileStatuses.filter { $0.isStaged }
                             let modifiedFiles = gitState.fileStatuses.filter {
-                                !$0.isStaged && $0.worktreeStatus == .modified
+                                $0.worktreeStatus == .modified && $0.indexStatus != .untracked
                             }
                             let untrackedFiles = gitState.fileStatuses.filter {
                                 $0.indexStatus == .untracked

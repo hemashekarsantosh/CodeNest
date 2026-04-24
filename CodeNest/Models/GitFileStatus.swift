@@ -91,7 +91,13 @@ struct GitFileStatus: Identifiable, Sendable {
     let worktreeStatus: GitStatusCode // unstaged (worktree vs index)
 
     nonisolated var isStaged: Bool {
-        indexStatus != .unmodified && indexStatus != .untracked
+        // True if there are staged changes for the file (indexStatus is not unmodified or untracked)
+        switch indexStatus {
+        case .modified, .added, .deleted, .renamed:
+            return true
+        default:
+            return false
+        }
     }
 
     nonisolated var displayCode: String {
